@@ -1,0 +1,18 @@
+,,,
+,,,
+,Workflow capability,OpenCode with detailed instructions,LangGraph
+,Task decomposition,"Yes, LLM-driven","Yes, LLM or code"
+,Dynamic agent selection,Yes,Yes
+,Specialized agent roles,Yes,Yes
+,Custom context per agent,Yes,Yes
+,Parallel delegation,"Yes, within available tooling",Yes
+,Sequential dependencies,Prompt-driven,Explicitly enforced
+,Conditional branching,Agent decides,Code or agent decides
+,Agent-to-agent communication,Through delegation/results or extensions,Fully programmable
+,Task retry limits,Prompt-based or custom tooling,Programmatically enforced
+,Mandatory quality checks,Prompt-driven or external scripts,Explicit workflow gates
+,Persistent workflow state,"Sessions, files, custom tracking",Checkpointed graph state
+,Failure recovery,Agent reasoning or scripts,Structured recovery mechanisms
+,Human approval,Tool permissions or custom workflow,Explicit interrupt/resume
+,Remote agent spawning,Custom SSH/API tools,Custom SSH/API tools
+,Deterministic execution,Limited without extra code,Strong when explicitly designed
