@@ -27,19 +27,6 @@ def claim_paper(paper_id):
         conn.commit()
         return cursor.rowcount == 1
 
-def complete_paper(paper_id):
-    with sqlite3.connect(DB_PATH) as conn:
-        cursor = conn.execute(
-            """
-            UPDATE papers
-            SET status = 'completed'
-            WHERE id = ? AND status = 'processing'
-            """,
-            (paper_id,)
-        )
-        conn.commit()
-        return cursor.rowcount == 1
-
 def save_findings(paper_id, citation, findings):
     with sqlite3.connect(DB_PATH) as conn:
         cursor = conn.execute(
