@@ -1,5 +1,6 @@
 import subprocess
 import json
+import argparse
 from database.db import (
     claim_paper,
     save_findings,
@@ -54,10 +55,23 @@ def process_paper(paper_id, topic, filename):
         failed_paper(paper_id)
         raise
 
+def main():
+    parser = argparse.ArgumentParser(
+        description="Process a research paper using OpenCode"
+    )
+
+    parser.add_argument("--paper-id", type=int, required=True)
+    parser.add_argument("--topic", required=True)
+    parser.add_argument("--filename", required=True)
+
+    args = parser.parse_args()
+
+    process_paper(
+        paper_id=args.paper_id,
+        topic=args.topic,
+        filename=args.filename,
+    )
+
 
 if __name__ == "__main__":
-    response = research_paper(
-        "Counter-UAS detection methods",
-        "test.pdf",
-    )
-    print(response)
+    main()
