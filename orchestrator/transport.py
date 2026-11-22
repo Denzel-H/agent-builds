@@ -51,8 +51,18 @@ if __name__ == "__main__":
         "project_dir": "/home/worker-android-env-1/agent-builds",
     }
 
+
     result = asyncio.run(
-        execute_command(["pwd"], execution)
+        execute_command(
+            [
+                "python3",
+                "worker/research.py",
+                "--paper-id", "2",  # Replace with your actual new paper ID
+                "--topic", "Counter-UAS detection methods",
+                "--filename", "test.pdf",
+            ],
+            execution,
+        )
     )
 
     print(result)
