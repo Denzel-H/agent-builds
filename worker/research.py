@@ -66,12 +66,15 @@ def main():
 
     args = parser.parse_args()
 
-    process_paper(
+    success = process_paper(
         paper_id=args.paper_id,
         topic=args.topic,
         filename=args.filename,
     )
-
+    print(json.dumps({
+        "paper_id": args.paper_id,
+        "processed": success,
+    }))
 
 if __name__ == "__main__":
     main()

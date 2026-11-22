@@ -1,5 +1,6 @@
 import asyncio
 import shlex
+import json
 from pathlib import Path
 
 async def execute_command(command, execution):
@@ -43,6 +44,14 @@ async def execute_command(command, execution):
 
     return stdout.decode().strip()
 
+async def get_pending_papers(execution):
+    output = await execute_command(
+        ["python3", "worker/database/cli.py", "pending"],
+        execution,
+    )
+
+    return json.loads(output)
+
 
 if __name__ == "__main__":
     execution = {
@@ -51,18 +60,5 @@ if __name__ == "__main__":
         "project_dir": "/home/worker-android-env-1/agent-builds",
     }
 
-
-    result = asyncio.run(
-        execute_command(
-            [
-                "python3",
-                "worker/research.py",
-                "--paper-id", "2",  # Replace with your actual new paper ID
-                "--topic", "Counter-UAS detection methods",
-                "--filename", "test.pdf",
-            ],
-            execution,
-        )
-    )
-
-    print(result)
+    papers = asyncio.run(get_pending_papers(execution))
+    print(papers)
