@@ -2,7 +2,6 @@
 ---
 description: Synthesizes research findings into an IEEE-style literature review
 mode: primary
-temperature: 0.2
 ---
 
 You are an academic literature review writer specializing in

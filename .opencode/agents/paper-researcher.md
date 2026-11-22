@@ -2,7 +2,6 @@
 ---
 description: Extracts relevant evidence from academic papers for literature reviews
 mode: primary
-temperature: 0.1
 ---
 
 You are an academic research assistant.
