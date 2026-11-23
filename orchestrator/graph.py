@@ -4,7 +4,7 @@ from typing import Annotated, TypedDict
 
 from langgraph.graph import StateGraph, START, END
 from langgraph.types import Send
-
+from papers import get_ready_papers
 from transport import (
     get_pending_papers,
     execute_paper,
@@ -12,6 +12,8 @@ from transport import (
     finish_investigation,
     start_investigation,
     request_investigation_stop,
+    transfer_paper,
+    register_paper,
 )
 
 class GraphState(TypedDict):
@@ -22,6 +24,8 @@ class GraphState(TypedDict):
     findings: Annotated[list[dict], operator.add]
     review: str
     status: str
+    paper_directory: str
+    registered_files: list[str]
 
 async def load_pending_papers(state: GraphState):
     papers = await get_pending_papers(state["execution"])
@@ -83,7 +87,7 @@ def route_investigation(state: GraphState):
     status = state["status"]
 
     if status == "running":
-        return "load_pending"
+        return "discover"
 
     elif status == "stopping":
         return "finish"
@@ -118,6 +122,27 @@ async def wait_for_papers(state: GraphState):
             return {}
         await asyncio.sleep(2)
 
+async def discover_papers(state: GraphState):
+    registered = set(state["registered_files"])
+
+    for paper in get_ready_papers(state["paper_directory"]):
+        if str(paper) in registered:
+            continue
+
+        filename = await transfer_paper(
+            paper,
+            state["execution"],
+        )
+
+        await register_paper(
+            filename,
+            state["execution"],
+        )
+
+        registered.add(str(paper))
+
+    return {"registered_files": sorted(registered)}
+
 builder = StateGraph(GraphState)
 
 builder.add_node("check_status", check_investigation_status)
@@ -125,19 +150,18 @@ builder.add_node("load_pending", load_pending_papers)
 builder.add_node("research_worker", research_worker)
 builder.add_node("idle", wait_for_papers)
 builder.add_node("finish", finish_research)
+builder.add_node("discover", discover_papers)
 
 builder.add_edge(START, "check_status")
-
 builder.add_conditional_edges(
     "check_status",
     route_investigation,
 )
-
+builder.add_edge("discover", "load_pending")
 builder.add_conditional_edges(
     "load_pending",
     dispatch_papers,
 )
-
 builder.add_edge("research_worker", "check_status")
 builder.add_edge("idle", "check_status")
 builder.add_edge("finish", END)

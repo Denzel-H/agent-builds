@@ -140,6 +140,19 @@ async def transfer_paper(paper, execution):
 
     return f"papers/{paper.name}"
 
+async def register_paper(filename, execution):
+    output = await execute_command(
+        [
+            "python3",
+            "worker/database/cli.py",
+            "add",
+            "--filename", filename,
+        ],
+        execution,
+    )
+
+    return json.loads(output)
+
 
 if __name__ == "__main__":
     execution = {
@@ -149,7 +162,7 @@ if __name__ == "__main__":
     }
 
     result = asyncio.run(
-        transfer_paper("/tmp/transport-test.pdf", execution)
+        register_paper("papers/transport-test.pdf", execution)
     )
 
     print(result)

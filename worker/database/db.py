@@ -114,3 +114,12 @@ def add_paper(filename):
 
         conn.commit()
         return cursor.lastrowid
+
+def paper_exists(filename):
+    with sqlite3.connect(DB_PATH) as conn:
+        cursor = conn.execute(
+            "SELECT 1 FROM papers WHERE filename = ?",
+            (filename,),
+        )
+
+        return cursor.fetchone() is not None

@@ -8,6 +8,7 @@ from db import (
     request_stop,
     finish_investigation,
     add_paper,
+    paper_exists,
 )
 
 
@@ -17,7 +18,7 @@ def main():
     )
     parser.add_argument(
         "command",
-        choices=["pending", "status", "start", "stop", "finish", "add"],
+        choices=["pending", "status", "start", "stop", "finish", "add", "exists"],
     )
     parser.add_argument("--filename")
 
@@ -57,6 +58,13 @@ def main():
         print(json.dumps({
             "paper_id": paper_id,
             "filename": args.filename,
+        }))
+    elif args.command == "exists":
+        if not args.filename:
+            parser.error("--filename is required for the exists command")
+
+        print(json.dumps({
+            "exists": paper_exists(args.filename)
         }))
 
 if __name__ == "__main__":
