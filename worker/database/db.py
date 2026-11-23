@@ -94,3 +94,23 @@ def finish_investigation():
         """)
         conn.commit()
         return cursor.rowcount == 1
+
+def add_paper(filename):
+    with sqlite3.connect(DB_PATH) as conn:
+        cursor = conn.execute(
+            "SELECT id FROM papers WHERE filename = ?",
+            (filename,),
+        )
+
+        existing = cursor.fetchone()
+
+        if existing:
+            return existing[0]
+
+        cursor = conn.execute(
+            "INSERT INTO papers (filename) VALUES (?)",
+            (filename,),
+        )
+
+        conn.commit()
+        return cursor.lastrowid

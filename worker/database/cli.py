@@ -7,6 +7,7 @@ from db import (
     set_investigation_status,
     request_stop,
     finish_investigation,
+    add_paper,
 )
 
 
@@ -16,8 +17,9 @@ def main():
     )
     parser.add_argument(
         "command",
-        choices=["pending", "status", "start", "stop", "finish"],
+        choices=["pending", "status", "start", "stop", "finish", "add"],
     )
+    parser.add_argument("--filename")
 
     args = parser.parse_args()
 
@@ -46,7 +48,16 @@ def main():
             "finished": finished,
             "status": get_investigation_status(),
         }))
+    elif args.command == "add":
+        if not args.filename:
+            parser.error("--filename is required for the add command")
 
+        paper_id = add_paper(args.filename)
+
+        print(json.dumps({
+            "paper_id": paper_id,
+            "filename": args.filename,
+        }))
 
 if __name__ == "__main__":
     main()
