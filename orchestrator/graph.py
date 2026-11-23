@@ -194,6 +194,8 @@ if __name__ == "__main__":
                     "findings": [],
                     "review": "",
                     "status": "running",
+                    "paper_directory": "/Users/oa/research-papers/test",
+                    "registered_files": [],
                 },
                 config={
                     "max_concurrency": 3,
@@ -202,7 +204,7 @@ if __name__ == "__main__":
             )
         )
 
-        await asyncio.sleep(1)
+        await asyncio.sleep(10)
 
         print(await request_investigation_stop(execution))
 
