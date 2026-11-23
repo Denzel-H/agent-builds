@@ -52,6 +52,19 @@ async def get_pending_papers(execution):
 
     return json.loads(output)
 
+async def execute_paper(paper_id, topic, filename, execution):
+    output = await execute_command(
+        [
+            "python3",
+            "worker/research.py",
+            "--paper-id", str(paper_id),
+            "--topic", topic,
+            "--filename", filename,
+        ],
+        execution,
+    )
+
+    return json.loads(output)
 
 if __name__ == "__main__":
     execution = {

@@ -17,6 +17,21 @@ def initialize_database():
             )
             """
         )
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS investigation_control (
+                id INTEGER PRIMARY KEY CHECK (id = 1),
+                status TEXT NOT NULL
+                    CHECK (status IN ('running', 'stopping', 'stopped'))
+            )
+            """
+        )
+        conn.execute(
+            """
+            INSERT OR IGNORE INTO investigation_control (id, status)
+            VALUES (1, 'stopped')
+            """
+        )
         conn.commit()
 if __name__ == "__main__":
     initialize_database()
