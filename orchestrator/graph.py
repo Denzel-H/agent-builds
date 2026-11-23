@@ -14,6 +14,7 @@ from transport import (
     request_investigation_stop,
     transfer_paper,
     register_paper,
+    paper_exists,
 )
 
 class GraphState(TypedDict):
@@ -124,20 +125,23 @@ async def wait_for_papers(state: GraphState):
 
 async def discover_papers(state: GraphState):
     registered = set(state["registered_files"])
+    execution = state["execution"]
 
     for paper in get_ready_papers(state["paper_directory"]):
         if str(paper) in registered:
             continue
 
-        filename = await transfer_paper(
-            paper,
-            state["execution"],
-        )
+        if execution["mode"] == "ssh":
+            filename = f"papers/{paper.name}"
+        else:
+            filename = str(paper)
 
-        await register_paper(
-            filename,
-            state["execution"],
-        )
+        if await paper_exists(filename, execution):
+            registered.add(str(paper))
+            continue
+
+        filename = await transfer_paper(paper, execution)
+        await register_paper(filename, execution)
 
         registered.add(str(paper))
 
@@ -191,7 +195,10 @@ if __name__ == "__main__":
                     "review": "",
                     "status": "running",
                 },
-                config={"max_concurrency": 3},
+                config={
+                    "max_concurrency": 3,
+                    "recursion_limit": 10000,
+                },
             )
         )
 

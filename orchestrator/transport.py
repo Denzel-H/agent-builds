@@ -153,6 +153,18 @@ async def register_paper(filename, execution):
 
     return json.loads(output)
 
+async def paper_exists(filename, execution):
+    output = await execute_command(
+        [
+            "python3",
+            "worker/database/cli.py",
+            "exists",
+            "--filename", filename,
+        ],
+        execution,
+    )
+
+    return json.loads(output)["exists"]
 
 if __name__ == "__main__":
     execution = {
@@ -161,8 +173,8 @@ if __name__ == "__main__":
         "project_dir": "/home/worker-android-env-1/agent-builds",
     }
 
-    result = asyncio.run(
-        register_paper("papers/transport-test.pdf", execution)
-    )
+    async def test():
+        print(await paper_exists("papers/transport-test.pdf", execution))
+        print(await paper_exists("papers/nonexistent.pdf", execution))
 
-    print(result)
+    asyncio.run(test())
