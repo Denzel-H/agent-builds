@@ -83,12 +83,34 @@ async def request_investigation_stop(execution):
 
     return json.loads(output)
 
+async def start_investigation(execution):
+    output = await execute_command(
+        ["python3", "worker/database/cli.py", "start"],
+        execution,
+    )
+
+    return json.loads(output)
+
+
+async def finish_investigation(execution):
+    output = await execute_command(
+        ["python3", "worker/database/cli.py", "finish"],
+        execution,
+    )
+
+    return json.loads(output)
+
+
 if __name__ == "__main__":
     execution = {
         "mode": "ssh",
         "host": "worker1",
         "project_dir": "/home/worker-android-env-1/agent-builds",
     }
+    
+    async def test():
+        print(await start_investigation(execution))
+        print(await request_investigation_stop(execution))
+        print(await finish_investigation(execution))
 
-    status = asyncio.run(get_investigation_status(execution))
-    print(status)
+    asyncio.run(test())
