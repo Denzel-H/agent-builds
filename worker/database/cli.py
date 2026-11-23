@@ -6,6 +6,7 @@ from db import (
     get_investigation_status,
     set_investigation_status,
     request_stop,
+    finish_investigation,
 )
 
 
@@ -15,7 +16,7 @@ def main():
     )
     parser.add_argument(
         "command",
-        choices=["pending", "status", "start", "stop"],
+        choices=["pending", "status", "start", "stop", "finish"],
     )
 
     args = parser.parse_args()
@@ -36,6 +37,13 @@ def main():
         accepted = request_stop()
         print(json.dumps({
             "stop_requested": accepted,
+            "status": get_investigation_status(),
+        }))
+    elif args.command == "finish":
+        finished = finish_investigation()
+
+        print(json.dumps({
+            "finished": finished,
             "status": get_investigation_status(),
         }))
 

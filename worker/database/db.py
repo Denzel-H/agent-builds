@@ -84,3 +84,13 @@ def request_stop():
         """)
         conn.commit()
         return cursor.rowcount == 1
+
+def finish_investigation():
+    with sqlite3.connect(DB_PATH) as conn:
+        cursor = conn.execute("""
+            UPDATE investigation_control
+            SET status = 'stopped'
+            WHERE id = 1 AND status = 'stopping'
+        """)
+        conn.commit()
+        return cursor.rowcount == 1
