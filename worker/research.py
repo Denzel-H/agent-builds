@@ -25,6 +25,7 @@ def research_paper(topic, filename):
         capture_output=True,
         text=True,
         check=False,
+        stdin=subprocess.DEVNULL,
     )
 
     if result.returncode != 0:
