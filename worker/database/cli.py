@@ -1,24 +1,43 @@
 import argparse
 import json
 
-from db import get_pending_papers
+from db import (
+    get_pending_papers,
+    get_investigation_status,
+    set_investigation_status,
+    request_stop,
+)
 
 
 def main():
     parser = argparse.ArgumentParser(
         description="Research database command-line interface"
     )
-
     parser.add_argument(
         "command",
-        choices=["pending"],
+        choices=["pending", "status", "start", "stop"],
     )
 
     args = parser.parse_args()
 
     if args.command == "pending":
-        papers = get_pending_papers()
-        print(json.dumps(papers))
+        print(json.dumps(get_pending_papers()))
+
+    elif args.command == "status":
+        print(json.dumps({
+            "status": get_investigation_status()
+        }))
+
+    elif args.command == "start":
+        set_investigation_status("running")
+        print(json.dumps({"status": "running"}))
+
+    elif args.command == "stop":
+        accepted = request_stop()
+        print(json.dumps({
+            "stop_requested": accepted,
+            "status": get_investigation_status(),
+        }))
 
 
 if __name__ == "__main__":

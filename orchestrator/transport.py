@@ -66,6 +66,23 @@ async def execute_paper(paper_id, topic, filename, execution):
 
     return json.loads(output)
 
+async def get_investigation_status(execution):
+    output = await execute_command(
+        ["python3", "worker/database/cli.py", "status"],
+        execution,
+    )
+
+    return json.loads(output)["status"]
+
+
+async def request_investigation_stop(execution):
+    output = await execute_command(
+        ["python3", "worker/database/cli.py", "stop"],
+        execution,
+    )
+
+    return json.loads(output)
+
 if __name__ == "__main__":
     execution = {
         "mode": "ssh",
@@ -73,5 +90,5 @@ if __name__ == "__main__":
         "project_dir": "/home/worker-android-env-1/agent-builds",
     }
 
-    papers = asyncio.run(get_pending_papers(execution))
-    print(papers)
+    status = asyncio.run(get_investigation_status(execution))
+    print(status)

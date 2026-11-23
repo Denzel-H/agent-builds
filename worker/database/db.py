@@ -52,3 +52,35 @@ def save_findings(paper_id, citation, findings):
         )
         conn.commit()
         return cursor.rowcount == 1
+
+def get_investigation_status():
+    with sqlite3.connect(DB_PATH) as conn:
+        cursor = conn.execute(
+            "SELECT status FROM investigation_control WHERE id = 1"
+        )
+        row = cursor.fetchone()
+        return row[0]
+
+
+def set_investigation_status(status):
+    valid_statuses = {"running", "stopping", "stopped"}
+
+    if status not in valid_statuses:
+        raise ValueError(f"Invalid investigation status: {status}")
+
+    with sqlite3.connect(DB_PATH) as conn:
+        conn.execute(
+            "UPDATE investigation_control SET status = ? WHERE id = 1",
+            (status,),
+        )
+        conn.commit()
+
+def request_stop():
+    with sqlite3.connect(DB_PATH) as conn:
+        cursor = conn.execute("""
+            UPDATE investigation_control
+            SET status = 'stopping'
+            WHERE id = 1 AND status = 'running'
+        """)
+        conn.commit()
+        return cursor.rowcount == 1
