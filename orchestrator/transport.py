@@ -100,6 +100,46 @@ async def finish_investigation(execution):
 
     return json.loads(output)
 
+async def transfer_paper(paper, execution):
+    paper = Path(paper).resolve()
+
+    if execution["mode"] == "local":
+        return str(paper)
+
+    if execution["mode"] != "ssh":
+        raise ValueError("Unsupported execution mode")
+
+    host = execution["host"]
+    remote_dir = f"{execution['project_dir']}/papers"
+
+    await execute_command(
+        ["mkdir", "-p", remote_dir],
+        execution,
+    )
+
+    process = await asyncio.create_subprocess_exec(
+        "sftp",
+        "-b", "-",
+        "-o", "BatchMode=yes",
+        host,
+        stdin=asyncio.subprocess.PIPE,
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE,
+    )
+
+    # Quote the remote path according to SFTP's command syntax.
+    destination = f"{remote_dir}/{paper.name}"
+    batch = f'put "{paper}" "{destination}"\n'
+
+    stdout, stderr = await process.communicate(batch.encode())
+
+    if process.returncode != 0:
+        raise RuntimeError(
+            f"PDF transfer failed: {stderr.decode().strip()}"
+        )
+
+    return f"papers/{paper.name}"
+
 
 if __name__ == "__main__":
     execution = {
@@ -107,10 +147,9 @@ if __name__ == "__main__":
         "host": "worker1",
         "project_dir": "/home/worker-android-env-1/agent-builds",
     }
-    
-    async def test():
-        print(await start_investigation(execution))
-        print(await request_investigation_stop(execution))
-        print(await finish_investigation(execution))
 
-    asyncio.run(test())
+    result = asyncio.run(
+        transfer_paper("/tmp/transport-test.pdf", execution)
+    )
+
+    print(result)

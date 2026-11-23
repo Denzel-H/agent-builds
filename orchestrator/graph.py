@@ -4,7 +4,15 @@ from typing import Annotated, TypedDict
 
 from langgraph.graph import StateGraph, START, END
 from langgraph.types import Send
-from transport import get_pending_papers, execute_paper
+
+from transport import (
+    get_pending_papers,
+    execute_paper,
+    get_investigation_status,
+    finish_investigation,
+    start_investigation,
+    request_investigation_stop,
+)
 
 class GraphState(TypedDict):
     topic: str
@@ -13,28 +21,45 @@ class GraphState(TypedDict):
     pending_papers: list[dict]
     findings: Annotated[list[dict], operator.add]
     review: str
+    status: str
 
 async def load_pending_papers(state: GraphState):
     papers = await get_pending_papers(state["execution"])
-
     return {"pending_papers": papers}
 
 async def research_worker(state: dict):
-    result = await execute_paper(
-        paper_id=state["paper_id"],
-        topic=state["topic"],
-        filename=state["filename"],
-        execution=state["execution"],
-    )
+    paper_id = state["paper_id"]
+
+    try:
+        result = await execute_paper(
+            paper_id=paper_id,
+            topic=state["topic"],
+            filename=state["filename"],
+            execution=state["execution"],
+        )
+
+    except Exception as error:
+        result = {
+            "paper_id": paper_id,
+            "processed": False,
+            "error": str(error),
+        }
 
     return {"findings": [result]}
 
 def dispatch_papers(state: GraphState):
-    papers = state["pending_papers"]
+    max_workers = state["max_workers"]
+
+    if max_workers < 1:
+        raise ValueError("max_workers must be at least 1")
+
+    papers = state["pending_papers"][:max_workers]
+
     if not papers:
-        return END
+        return "idle"
 
     tasks = []
+
     for paper in papers:
         task = Send(
             "research_worker",
@@ -45,24 +70,77 @@ def dispatch_papers(state: GraphState):
                 "execution": state["execution"],
             },
         )
+
         tasks.append(task)
 
     return tasks
 
+async def check_investigation_status(state: GraphState):
+    status = await get_investigation_status(state["execution"])
+    return {"status": status}
+
+def route_investigation(state: GraphState):
+    status = state["status"]
+
+    if status == "running":
+        return "load_pending"
+
+    elif status == "stopping":
+        return "finish"
+
+    elif status == "stopped":
+        return END
+
+    else:
+        raise ValueError(f"Unknown investigation status: {status}")
+
+async def finish_research(state: GraphState):
+    result = await finish_investigation(state["execution"])
+
+    if not result["finished"]:
+        raise RuntimeError(
+            f"Could not finish investigation: {result['status']}"
+        )
+
+    return {"status": "stopped"}
+
+async def wait_for_papers(state: GraphState):
+    while True:
+        status = await get_investigation_status(
+            state["execution"]
+        )
+        if status != "running":
+            return {}
+        papers = await get_pending_papers(
+            state["execution"]
+        )
+        if papers:
+            return {}
+        await asyncio.sleep(2)
 
 builder = StateGraph(GraphState)
 
+builder.add_node("check_status", check_investigation_status)
 builder.add_node("load_pending", load_pending_papers)
 builder.add_node("research_worker", research_worker)
+builder.add_node("idle", wait_for_papers)
+builder.add_node("finish", finish_research)
 
-builder.add_edge(START, "load_pending")
+builder.add_edge(START, "check_status")
+
+builder.add_conditional_edges(
+    "check_status",
+    route_investigation,
+)
 
 builder.add_conditional_edges(
     "load_pending",
     dispatch_papers,
 )
 
-builder.add_edge("research_worker", END)
+builder.add_edge("research_worker", "check_status")
+builder.add_edge("idle", "check_status")
+builder.add_edge("finish", END)
 
 graph = builder.compile()
 
@@ -74,18 +152,30 @@ if __name__ == "__main__":
         "host": "worker1",
         "project_dir": "/home/worker-android-env-1/agent-builds",
     }
-    result = asyncio.run(
-        graph.ainvoke(
-            {
-                "topic": "Counter-UAS detection methods",
-                "execution": execution,
-                "max_workers": 3,
-                "pending_papers": [],
-                "findings": [],
-                "review": "",
-            },
-            config={"max_concurrency": 3},
-        )
-    )
 
-    print(result["pending_papers"])
+    async def test():
+        await start_investigation(execution)
+
+        task = asyncio.create_task(
+            graph.ainvoke(
+                {
+                    "topic": "Counter-UAS detection methods",
+                    "execution": execution,
+                    "max_workers": 3,
+                    "pending_papers": [],
+                    "findings": [],
+                    "review": "",
+                    "status": "running",
+                },
+                config={"max_concurrency": 3},
+            )
+        )
+
+        await asyncio.sleep(1)
+
+        print(await request_investigation_stop(execution))
+
+        result = await task
+        print("Final status:", result["status"])
+
+    asyncio.run(test())

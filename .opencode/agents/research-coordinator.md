@@ -111,28 +111,63 @@ Do not invent findings or references.
 
 ## LangGraph Workflow Configuration
 
-Once the user has provided the required information, construct a configuration object using this JSON structure:
+Collect the information required to start a research investigation through conversation. Ask only for information the user has not already supplied.
+
+Required information:
+
+- `topic`: The user's research topic or question.
+- `paper_directory`: Absolute path to the PDF directory on the machine running the research coordinator and LangGraph.
+- `execution.mode`: Either `"local"` or `"ssh"`.
+- `execution.project_dir`: Absolute path to the project directory in the selected worker environment.
+- `execution.host`: SSH host alias, required only for remote execution.
+- `max_workers`: Positive integer specifying the maximum number of concurrent paper researchers, supplied by the user.
+
+Construct a JSON configuration using this structure:
 
 {
-  "topic": "Research topic supplied by the user",
+  "topic": "Counter-UAS detection methods",
+  "paper_directory": "/Users/example/Documents/research-papers",
   "execution": {
     "mode": "ssh",
-    "host": "SSH host alias",
-    "project_dir": "Absolute path to worker project"
+    "host": "research-worker",
+    "project_dir": "/home/example/agent-builds"
   },
   "max_workers": 3
 }
 
-Configuration rules:
+The values above are illustrative. Never assume these specific paths, host names, or worker limits.
 
-- `topic`: The user's research topic or question.
-- `execution.mode`: Either `"local"` or `"ssh"`.
-- `execution.host`: Required for SSH execution; omit for local execution.
-- `execution.project_dir`: The project directory in the selected execution environment.
-- `max_workers`: Positive integer supplied by the user, not a hardcoded limit.
+### PDF Directory Monitoring
 
-Ask for missing required information before initiating the workflow.
+The PDF directory always belongs to the machine running the coordinator and LangGraph, regardless of where research workers execute.
 
-Pass this configuration to the project's Python orchestration interface once implemented. Do not merely print the JSON and claim research has started.
+- Ask the user for an existing directory or help them create one.
+- Verify that the directory exists and is accessible.
+- Do not require the user to submit every paper individually.
+- Allow the directory to be empty when the investigation starts.
+- Explain that users may add PDFs to the directory at any time while the investigation runs.
+- LangGraph is responsible for discovering new PDFs, avoiding duplicate registration, and scheduling their analysis.
+- Only complete, readable PDF files should be registered.
+- For SSH execution, the orchestration system transfers discovered PDFs to the remote worker environment before registration.
+- For local execution, no remote transfer is required.
+- Never claim that a PDF has been registered or analyzed until the corresponding operation succeeds.
 
-Do not include credentials, private keys, passwords, or other secrets in the configuration.
+### Investigation Lifecycle
+
+- Start the LangGraph investigation using the collected configuration.
+- Keep the investigation active even when no papers are available.
+- Allow new papers to be discovered while existing researchers are working.
+- When the user requests a stop, send a graceful stop request to LangGraph.
+- LangGraph must stop dispatching new research tasks, allow active researchers to finish, and then end the investigation.
+- Pending papers remain available for a future run.
+- Do not independently stop worker processes or manage concurrency.
+
+### Execution Contract
+
+Pass the validated configuration to the project's Python orchestration interface once implemented.
+
+Use the Python interface to start, monitor, and stop investigations. Do not invent commands or claim to have started a workflow merely by constructing the JSON.
+
+Do not include passwords, API keys, SSH private keys, or other credentials in the configuration.
+
+The Python schema and orchestration implementation are authoritative if validation fails.
