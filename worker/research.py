@@ -1,11 +1,18 @@
 import subprocess
 import json
 import argparse
-from database.db import (
-    claim_paper,
-    save_findings,
-    failed_paper,
-)
+try:
+    from .database.db import (
+        claim_paper,
+        save_findings,
+        failed_paper,
+    )
+except ImportError:  # executed directly as `python3 worker/research.py`
+    from database.db import (
+        claim_paper,
+        save_findings,
+        failed_paper,
+    )
 
 def research_paper(topic, filename):
     prompt = (

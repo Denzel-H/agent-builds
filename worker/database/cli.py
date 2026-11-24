@@ -1,15 +1,32 @@
 import argparse
 import json
 
-from db import (
-    get_pending_papers,
-    get_investigation_status,
-    set_investigation_status,
-    request_stop,
-    finish_investigation,
-    add_paper,
-    paper_exists,
-)
+try:
+    from .db import (
+        get_pending_papers,
+        get_completed_papers,
+        get_paper_stats,
+        get_papers,
+        get_investigation_status,
+        set_investigation_status,
+        request_stop,
+        finish_investigation,
+        add_paper,
+        paper_exists,
+    )
+except ImportError:  # executed directly as `python3 worker/database/cli.py`
+    from db import (
+        get_pending_papers,
+        get_completed_papers,
+        get_paper_stats,
+        get_papers,
+        get_investigation_status,
+        set_investigation_status,
+        request_stop,
+        finish_investigation,
+        add_paper,
+        paper_exists,
+    )
 
 
 def main():
@@ -18,7 +35,10 @@ def main():
     )
     parser.add_argument(
         "command",
-        choices=["pending", "status", "start", "stop", "finish", "add", "exists"],
+        choices=[
+            "pending", "completed", "stats", "papers", "status", "start",
+            "stop", "finish", "add", "exists",
+        ],
     )
     parser.add_argument("--filename")
 
@@ -26,6 +46,15 @@ def main():
 
     if args.command == "pending":
         print(json.dumps(get_pending_papers()))
+
+    elif args.command == "completed":
+        print(json.dumps(get_completed_papers()))
+
+    elif args.command == "stats":
+        print(json.dumps(get_paper_stats()))
+
+    elif args.command == "papers":
+        print(json.dumps(get_papers()))
 
     elif args.command == "status":
         print(json.dumps({

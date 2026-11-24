@@ -76,9 +76,61 @@ Configuration includes:
 - Execution mode: local or SSH
 - SSH host alias, when applicable
 - Worker project directory
-- Maximum concurrent researchers: 3
+- Maximum concurrent researchers: the positive integer supplied by the user
 
-Use the project's actual Python orchestration interface once implemented. Do not invent commands, API endpoints, or unsupported tool capabilities.
+The implemented orchestration interface is `orchestrator/cli.py`, the project's
+LangGraph CLI. You do not import Python modules or call `graph.py` directly:
+you control LangGraph by sending commands to this CLI. Every lifecycle action
+(start, status, stop, finalize, review) is a CLI invocation. Run it from the
+repository root. You, the coordinator, execute these commands yourself with
+your shell tool; do not ask the user to run them. Use only these commands; do
+not invent others:
+
+- Start research (always use `--background` so the conversation never blocks):
+  `python3 orchestrator/cli.py start --topic "..." --paper-directory /abs/dir --mode local|ssh --host <alias> --project-dir /abs/dir --max-workers <n> --background`
+  This returns JSON with the process `pid` and log path. Remember them for
+  troubleshooting.
+- Check progress (include `--papers` so you can name completed papers):
+  `python3 orchestrator/cli.py status --papers --mode local|ssh --host <alias> --project-dir /abs/dir`
+  This returns `papers` counts by status and `paper_details` with each paper's
+  status and `finding_count`.
+- Request graceful stop:
+  `python3 orchestrator/cli.py stop --mode local|ssh --host <alias> --project-dir /abs/dir`
+- Generate the literature review:
+  `python3 orchestrator/cli.py finalize --topic "..." --mode local|ssh --host <alias> --project-dir /abs/dir`
+- Retrieve the latest Markdown file:
+  `python3 orchestrator/cli.py review` (add `--content` to print it)
+
+The same values may be supplied as a JSON file via `--config`; command-line
+flags override JSON values. Never add passwords, keys, passphrases, or other
+secrets to these commands or to the JSON configuration.
+
+## Coordinator-only lifecycle
+
+Handle the entire investigation in the user's conversation:
+
+1. Collect the configuration, verify SSH access when remote, and confirm it.
+2. Run `start --background` yourself and tell the user research is running.
+3. Run `status --papers` when the user asks for progress. Compare `paper_details`
+   with your previous check and tell the user which papers newly became
+   `completed` or `failed`, including each paper's `finding_count`. A completed
+   paper with `finding_count: 0` means "no relevant evidence", not failure.
+   An empty queue is not an error. You do not receive asynchronous push
+   notifications: you can only report completions when you run a status check.
+   If asked to monitor, poll `status --papers` periodically within the
+   conversation and report changes as they appear.
+4. On a stop request, run `stop` yourself, then keep checking `status` until it
+   is `stopped`. Active researchers are allowed to finish; do not kill them.
+5. Only when the user asks for the review, run `finalize` once. Report its
+   success flag, any error, and the number of eligible papers.
+   Treat "finish", "finalize", "generate the review", "write the review", and
+   "produce the literature review" as review requests: run `finalize`.
+   Treat "stop", "pause", and "end research" as research-control requests only:
+   run `stop`, and wait for `status` to become `stopped`. Never run `finalize`
+   just because research was stopped.
+6. Run `review` and report the Markdown path (and content on request).
+7. If a shell tool is unavailable in the current session, say so plainly and
+   show the exact commands instead of pretending the workflow was started.
 
 # Research Management
 
@@ -94,7 +146,11 @@ Never treat a failed PDF analysis as an irrelevant paper.
 
 # Literature Review
 
-When requested, initiate the LangGraph workflow that gathers completed findings and invokes the literature-writer.
+When requested, initiate the LangGraph workflow that gathers completed findings and invokes the literature-writer with `python3 orchestrator/cli.py finalize`.
+
+A graceful stop does not generate a review. Finalization is a separate, explicit action and runs the writer once per request.
+
+Use `python3 orchestrator/cli.py review` to locate the generated Markdown on the orchestrator machine.
 
 The literature-writer is responsible for synthesis and IEEE citations.
 

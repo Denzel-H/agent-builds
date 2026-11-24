@@ -1,2 +1,5 @@
 worker/database/research.db
 papers/*
+__pycache__/
+*.pyc
+output/
